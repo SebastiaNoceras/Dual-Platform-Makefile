@@ -10,16 +10,27 @@
 #*****************************************************************************
 #------------------------------------------------------------------------------
 # Dual platform Makefile tha supports a host environment (LINUX) and the
-# target embedded system MSP432 (ARM)
+# target embedded system MSP432 (ARM).
 #
 # Use: make build PLATFORM=MSP432
 #      make build PLATFORM=HOST
 #
 # Build Targets:
-#      <Put a description of the supported targets here>
-#
-# Platform Overrides:
-#      <Put a description of the supported Overrides here
+#      <FILE>.o: Generates the object file for all c-source files (but do not 
+#       	 link) by specifying the object file you want to compile.
+#      <FILE>.i: Generates the preprocessed output of all c-program
+#      		 implementation files.
+#      <FILE>.asm: Generates assembly output of c-program implementation files 
+#      		and the final output executable.
+#      <FILE>.d: Generates dependency files for each source file.
+#      compile-all: compiles all sources into output files <FILE>.o.
+#      build: Compiles all object files and link into a final executable.
+#      clean: Removes all compiled objects, preprocessed outputs, assembly
+#      		 outputs, executable files and build output files.
+#Platform Overrides:
+#      CPU -  ARM Cortex Architecture(cortex-m4)                               
+#      ARCH - ARM Architecture (thumb)                                         
+#      SPECS - Specs file to give the linker (nosys.specs) 
 #
 #------------------------------------------------------------------------------
 include sources.mk
@@ -27,17 +38,19 @@ include sources.mk
 ifeq ($(PLATFORM),HOST)
 		CC = gcc
 		LD = ld
-		LDFLAGS =  
+		LDFLAGS = -Wl,-Map=$(TARGET).map 
 		OBJDUMP = objdump
+		SIZE = size
 else
 		CC = arm-none-eabi-gcc
 		LD = arm-none-eabi-ld
 		LINKER_FILE = ../msp432p401r.lds
-		LDFLAGS = -T $(LINKER_FILE)
+		LDFLAGS = -Wl,-Map=$(TARGET).map -T $(LINKER_FILE)
 		CPU = cortex-m4
 		ARMFLAGS = -mcpu=$(CPU) -mthumb -march=armv7e-m -mfloat-abi=hard\
 			   -mfpu=fpv4-sp-d16 --specs=nosys.specs
-		OBJDUMB = arm-none-eabi-objdumb
+		OBJDUMP = arm-none-eabi-objdump
+		SIZE = arm-none-eabi-size
 endif
 
 TARGET = c1m2
@@ -52,7 +65,9 @@ DEPS = $(SOURCES:.c=.d)
 all: build
 
 $(TARGET).out : $(OBJS)
-	$(LD) -lc $^ -o $@ $(LDFLAGS)
+	$(CC) $^ -o $@ $(LDFLAGS) $(CFLAGS)
+	$(SIZE) -Atd $(TARGET).out
+	$(SIZE) $(TARGET).out
 
 %.o : %.c
 	$(CC) -o $@ -c $< $(INCLUDES) $(CFLAGS)
@@ -62,6 +77,9 @@ $(TARGET).out : $(OBJS)
 
 %.asm : %.c
 	$(CC) -o $@ -S $< $(INCLUDES) $(CFLAGS)
+
+$(TARGET).asm : $(TARGET).out
+	$(OBJDUMP) --disassemble $< > $@
 
 %.d : %.c
 	$(CC) -o $@ -M $< $(INCLUDES) $(CFLAGS)
