@@ -35,13 +35,7 @@
 #------------------------------------------------------------------------------
 include sources.mk
 
-ifeq ($(PLATFORM),HOST)
-		CC = gcc
-		LD = ld
-		LDFLAGS = -Wl,-Map=$(TARGET).map 
-		OBJDUMP = objdump
-		SIZE = size
-else
+ifeq ($(PLATFORM),MSP432)
 		CC = arm-none-eabi-gcc
 		LD = arm-none-eabi-ld
 		LINKER_FILE = ../msp432p401r.lds
@@ -51,6 +45,12 @@ else
 			   -mfpu=fpv4-sp-d16 --specs=nosys.specs
 		OBJDUMP = arm-none-eabi-objdump
 		SIZE = arm-none-eabi-size
+else
+		CC = gcc
+		LD = ld
+		LDFLAGS = -Wl,-Map=$(TARGET).map 
+		OBJDUMP = objdump
+		SIZE = size
 endif
 
 TARGET = c1m2
@@ -96,9 +96,9 @@ info:
 	$(info $(SOURCES))
 	$(info $(INCLUDES))
 
-.PHONY: clear
-clear: 
-	rm $(TARGET).out $(OBJS) $(ASMS) $(PREPRO) $(DEPS) $(TARGET).asm \
+.PHONY: clean
+clean: 
+	rm -f $(TARGET).out $(OBJS) $(ASMS) $(PREPRO) $(DEPS) $(TARGET).asm \
 		$(TARGET).map
 
 
